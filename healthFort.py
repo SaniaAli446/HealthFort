@@ -60,6 +60,7 @@ def generate_response(user_input):
     if response:
         ai_response = response.text
     else:
+        
         ai_response = "**AI Response:** Sorry, I couldn't generate a response.\n**Well-being Task:** Try taking a deep breath and relaxing."
 
     st.session_state['conversation_history'].append({"role": "assistant", "content": ai_response})
