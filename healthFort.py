@@ -2,12 +2,12 @@ import streamlit as st
 import google.generativeai as genai
 import base64
 
-# Set page title
-st.set_page_config(page_title="Mental Health Chatbot")
-
 # Configure API Key
 GENAI_API_KEY = "AIzaSyDGfK8y5mdOoYRJ1Ncm3lSfbKHmYBQ0Ro4"
 genai.configure(api_key=GENAI_API_KEY)
+
+# Set page title and layout
+st.set_page_config(page_title="Mental Health Support", layout="wide")
 
 # Load Background Image
 def get_base64(image_path):
@@ -30,82 +30,101 @@ st.markdown(f"""
         .stApp {{
             background-color: transparent;
         }}
+        .navbar {{
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            background-color: #1a1a2e;
+        }}
+        .navbar a {{
+            padding: 14px 20px;
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0 15px;
+        }}
+        .navbar a:hover {{
+            background-color: #16213e;
+            border-radius: 5px;
+        }}
     </style>
+    <div class="navbar">
+        <a href="/?page=Home">Home</a>
+        <a href="/?page=Chatbot">Chatbot</a>
+        <a href="/?page=Upload Reports">Upload Reports</a>
+    </div>
     """, unsafe_allow_html=True)
 
-# Initialize conversation history
-st.session_state.setdefault('conversation_history', [])
+# Page Navigation
+query_params = st.query_params
+page = query_params.get("page", ["Home"])
+page = page[0] if isinstance(page, list) else page
 
-# Function to generate AI response + Task
-def generate_response(user_input):
-    st.session_state['conversation_history'].append({"role": "user", "content": user_input})
+# Home Page
+if page == "Home":
+    st.title("Welcome to the Mental Health Support Platform")
+    st.write("""
+    This platform is designed to provide mental health support through AI-powered conversations
+    and secure report uploads. Our chatbot offers empathetic responses and well-being tasks 
+    to help you feel better. Stay positive and take care of your mental health!
+    """)
 
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+# Chatbot Page
+elif page == "Chatbot":
+    st.title("Mental Health Chatbot")
     
-    # AI prompt to generate a response AND a well-being task
-    prompt = f"""
-    User's concern: {user_input}
-
-    1. First, respond with a helpful and empathetic reply based on the user's concern.
-    2. Then, suggest a **small well-being task** that the user can do to improve their mood or mental health.
-    3. The task should be practical, simple, and something the user can do immediately.
-
-    Format your response as:
-    **AI Response:** <your response>
-    **Well-being Task:** <your suggested task>
-    """
-
-    response = model.generate_content(prompt)
+    # Initialize conversation history
+    st.session_state.setdefault('conversation_history', [])
     
-    if response:
-        ai_response = response.text
-    else:
+    def generate_response(user_input):
+        st.session_state['conversation_history'].append({"role": "user", "content": user_input})
+        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        prompt = f"""
+        User's concern: {user_input}
         
-        ai_response = "**AI Response:** Sorry, I couldn't generate a response.\n**Well-being Task:** Try taking a deep breath and relaxing."
-
-    st.session_state['conversation_history'].append({"role": "assistant", "content": ai_response})
+        1. Respond with a helpful and empathetic reply.
+        2. Suggest a well-being task the user can do immediately.
+        
+        Format:
+        **AI Response:** <your response>
+        **Well-being Task:** <your suggested task>
+        """
+        response = model.generate_content(prompt)
+        ai_response = response.text if response else "I'm here to support you. Take a deep breath."
+        st.session_state['conversation_history'].append({"role": "assistant", "content": ai_response})
+        return ai_response
     
-    return ai_response
+    # Display past conversations
+    for msg in st.session_state['conversation_history']:
+        role = "You" if msg['role'] == "user" else "AI"
+        st.markdown(f"**{role}:** {msg['content']}")
+    
+    # User input
+    user_message = st.text_input("How can I help you today?")
+    if user_message:
+        with st.spinner("Thinking..."):
+            ai_response = generate_response(user_message)
+            st.markdown(ai_response)
+    
+    # Buttons for additional features
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Give me a positive Affirmation"):
+            model = genai.GenerativeModel("gemini-1.5-pro-latest")
+            response = model.generate_content("Provide a positive affirmation to encourage someone who is feeling stressed or overwhelmed.")
+            affirmation = response.text if response else "Stay strong and positive!"
+            st.markdown(f"**Affirmation:** {affirmation}")
+    
+    with col2:
+        if st.button("Give me a guided meditation"):
+            model = genai.GenerativeModel("gemini-1.5-pro-latest")
+            response = model.generate_content("Provide a 5-minute guided meditation script to help someone relax and reduce stress.")
+            meditation_guide = response.text if response else "Take a deep breath, relax, and focus on your breathing."
+            st.markdown(f"**Guided Meditation:** {meditation_guide}")
 
-# Function to generate a positive affirmation
-def generate_affirmation():
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    prompt = "Provide a positive affirmation to encourage someone who is feeling stressed or overwhelmed."
-    response = model.generate_content(prompt)
-    return response.text if response else "Stay strong and positive!"
-
-# Function to generate a guided meditation script
-def generate_meditation_guide():
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    prompt = "Provide a 5-minute guided meditation script to help someone relax and reduce stress."
-    response = model.generate_content(prompt)
-    return response.text if response else "Take a deep breath, relax, and focus on your breathing."
-
-# Streamlit UI
-st.title("Mental Health Support Agent")
-
-# Display past conversation history
-for msg in st.session_state['conversation_history']:
-    role = "You" if msg['role'] == "user" else "AI"
-    st.markdown(f"**{role}:** {msg['content']}")
-
-# User input
-user_message = st.text_input("How can I help you today?")
-
-if user_message:
-    with st.spinner("Thinking..."):
-        ai_response = generate_response(user_message)
-        st.markdown(ai_response)
-
-# Buttons for additional features
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("Give me a positive Affirmation"):
-        affirmation = generate_affirmation()
-        st.markdown(f"**Affirmation:** {affirmation}")
-
-with col2:
-    if st.button("Give me a guided meditation"):
-        meditation_guide = generate_meditation_guide()
-        st.markdown(f"**Guided Meditation:** {meditation_guide}")
+# Report Upload Page
+elif page == "Upload Reports":
+    st.title("Upload Medical Reports")
+    st.write("This feature is still under development. Stay tuned for updates!")
+    st.file_uploader("Upload your report (Coming Soon)", type=["pdf", "jpg", "png", "txt"])
