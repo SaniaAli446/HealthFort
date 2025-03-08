@@ -36,33 +36,42 @@ st.markdown(f"""
             padding: 15px;
             background-color: #1a1a2e;
         }}
-        .navbar a {{
+        .navbar button {{
             padding: 14px 20px;
             text-decoration: none;
             color: #ffffff;
             font-size: 18px;
             font-weight: bold;
             margin: 0 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
         }}
-        .navbar a:hover {{
+        .navbar button:hover {{
             background-color: #16213e;
             border-radius: 5px;
         }}
     </style>
-    <div class="navbar">
-        <a href="/?page=Home">Home</a>
-        <a href="/?page=Chatbot">Chatbot</a>
-        <a href="/?page=Upload Reports">Upload Reports</a>
-    </div>
     """, unsafe_allow_html=True)
 
-# Page Navigation
-query_params = st.query_params
-page = query_params.get("page", ["Home"])
-page = page[0] if isinstance(page, list) else page
+# Initialize session state for page navigation
+if "page" not in st.session_state:
+    st.session_state.page = "Home"
+
+# Navigation Bar
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Home"):
+        st.session_state.page = "Home"
+with col2:
+    if st.button("Chatbot"):
+        st.session_state.page = "Chatbot"
+with col3:
+    if st.button("Upload Reports"):
+        st.session_state.page = "Upload Reports"
 
 # Home Page
-if page == "Home":
+if st.session_state.page == "Home":
     st.title("Welcome to the Mental Health Support Platform")
     st.write("""
     This platform is designed to provide mental health support through AI-powered conversations
@@ -71,12 +80,12 @@ if page == "Home":
     """)
 
 # Chatbot Page
-elif page == "Chatbot":
+elif st.session_state.page == "Chatbot":
     st.title("Mental Health Chatbot")
-    
+
     # Initialize conversation history
     st.session_state.setdefault('conversation_history', [])
-    
+
     def generate_response(user_input):
         st.session_state['conversation_history'].append({"role": "user", "content": user_input})
         model = genai.GenerativeModel("gemini-1.5-pro-latest")
@@ -94,19 +103,19 @@ elif page == "Chatbot":
         ai_response = response.text if response else "I'm here to support you. Take a deep breath."
         st.session_state['conversation_history'].append({"role": "assistant", "content": ai_response})
         return ai_response
-    
+
     # Display past conversations
     for msg in st.session_state['conversation_history']:
         role = "You" if msg['role'] == "user" else "AI"
         st.markdown(f"**{role}:** {msg['content']}")
-    
+
     # User input
     user_message = st.text_input("How can I help you today?")
     if user_message:
         with st.spinner("Thinking..."):
             ai_response = generate_response(user_message)
             st.markdown(ai_response)
-    
+
     # Buttons for additional features
     col1, col2 = st.columns(2)
     with col1:
@@ -115,7 +124,7 @@ elif page == "Chatbot":
             response = model.generate_content("Provide a positive affirmation to encourage someone who is feeling stressed or overwhelmed.")
             affirmation = response.text if response else "Stay strong and positive!"
             st.markdown(f"**Affirmation:** {affirmation}")
-    
+
     with col2:
         if st.button("Give me a guided meditation"):
             model = genai.GenerativeModel("gemini-1.5-pro-latest")
@@ -124,7 +133,7 @@ elif page == "Chatbot":
             st.markdown(f"**Guided Meditation:** {meditation_guide}")
 
 # Report Upload Page
-elif page == "Upload Reports":
+elif st.session_state.page == "Upload Reports":
     st.title("Upload Medical Reports")
     st.write("This feature is still under development. Stay tuned for updates!")
     st.file_uploader("Upload your report (Coming Soon)", type=["pdf", "jpg", "png", "txt"])
