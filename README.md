@@ -1,6 +1,6 @@
 ## Live Demo
 
-Check out the deployed app: [Click here](https://healthfort.streamlit.app/)
+Check out the deployed web: [Click here](https://healthfort.streamlit.app/)
 
 Mental Health AI Agent
 
